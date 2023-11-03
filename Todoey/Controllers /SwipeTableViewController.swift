@@ -7,24 +7,54 @@
 //
 
 import UIKit
+import SwipeCellKit
 
-class SwipeTableViewController: UIViewController {
+class SwipeTableViewController: UITableViewController, SwipeTableViewCellDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Do any additional setup after loading the view.
+        tableView.rowHeight = 65.0
     }
     
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+    
+    //Table View Datasource methods
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath) as! SwipeTableViewCell
+                cell.delegate = self // I will get back for this a bit later
+                return cell
     }
-    */
+    
+    
+    
+    func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath, for orientation: SwipeActionsOrientation) -> [SwipeAction]? {
+        guard orientation == .left else { return nil }
 
+        let deleteAction = SwipeAction(style: .destructive, title: "Delete") { action, indexPath in
+            print("Delete Cell")
+            
+            self.updateModel(at: indexPath)
+      
+        }
+
+        // customize the action appearance
+        deleteAction.image = UIImage(named: "delete-icon")
+
+        return [deleteAction]
+    }
+    
+    func tableView(_ tableView: UITableView, editActionsOptionsForRowAt indexPath: IndexPath, for orientation: SwipeActionsOrientation) -> SwipeOptions {
+        var options = SwipeOptions()
+        options.expansionStyle = .destructive
+        options.transitionStyle = .border
+        return options // Here I got error because I implemented the function which is related to collectionView, but I need a funtion which is related to TableView
+        
+        
+        
+    }
+    
+    
+    func updateModel(at indexPath: IndexPath){
+        // Update our data model
+        
+    }
 }

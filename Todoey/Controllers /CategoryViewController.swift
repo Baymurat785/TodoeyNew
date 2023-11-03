@@ -7,84 +7,154 @@
 //
 
 import UIKit
+import RealmSwift
+import ChameleonFramework
+//import SwipeCellKit
 
-class CategoryViewController: UITableViewController {
 
+class CategoryViewController: SwipeTableViewController{
+    
+    lazy var realm : Realm = {
+        return try! Realm()
+    }()
+  
+    
+    var categories: Results<Category>?
+//    var delegate: SwipeTableViewCell?
+    
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-        // self.navigationItem.rightBarButtonItem = self.editButtonItem
+         loadCategories()
+        navigationController?.navigationBar.prefersLargeTitles = true
+        navigationItem.title = "Todoey"
+        tableView.separatorColor = .none
+        
+    }
+    override func viewWillAppear(_ animated: Bool) {
+        guard let navBar = navigationController?.navigationBar else {
+            fatalError("Navigation controller does not exist")
+        }
+        navBar.backgroundColor = UIColor(hexString: "1D9BF6")
     }
 
-    // MARK: - Table view data source
-
-    override func numberOfSections(in tableView: UITableView) -> Int {
-        // #warning Incomplete implementation, return the number of sections
-        return 0
-    }
-
+    //MARK: Tableview Datasource Methods
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        // #warning Incomplete implementation, return the number of rows
-        return 0
+        categories?.count ?? 1
     }
-
-    /*
+    
+    
+//    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+//        let cell = tableView.dequeueReusableCell(withIdentifier: "Cell") as! SwipeTableViewCell
+//        cell.delegate = self
+//        return cell
+//    }
+//    
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "reuseIdentifier", for: indexPath)
-
-        // Configure the cell...
-
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)// when the cell of swipetableviewcontroller returns, it gets place into here
+        
+        if let category = categories?[indexPath.row] { 
+            
+            cell.textLabel?.text = category.name ?? "No Categories added yet"
+            
+            guard let categoryColor = UIColor(hexString: category.color) else {fatalError()}
+            cell.backgroundColor = categoryColor
+            cell.textLabel?.textColor = ContrastColorOf(categoryColor, returnFlat: true)
+        }
+       
+        
         return cell
     }
-    */
-
-    /*
-    // Override to support conditional editing of the table view.
-    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the specified item to be editable.
-        return true
+   //MARK: Delete Data From Swipe
+    
+    
+    override func updateModel(at indexPath: IndexPath) {
+        super.updateModel(at: indexPath)// you will get the things from the original updateModel which is in SwipeViewController, if you did not write this you will not get. 
+        
+        if let categoryForDeletion = self.categories?[indexPath.row]{
+            do {
+                try realm.write {
+                    realm.delete(categoryForDeletion)
+                }
+            }catch {
+                print("Error deleting property, \(error)")
+            }
+        }
     }
-    */
-
-    /*
-    // Override to support editing the table view.
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            // Delete the row from the data source
-            tableView.deleteRows(at: [indexPath], with: .fade)
-        } else if editingStyle == .insert {
-            // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-        }    
+    
+    
+    
+    //MARK: Data manupulation methods
+    func save(category: Category) {
+        do {
+            try realm.write {
+                realm.add(category)
+            }
+        }catch {
+            print("Error saving context \(error)")
+        }
+        
+        tableView.reloadData()
     }
-    */
-
-    /*
-    // Override to support rearranging the table view.
-    override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
-
+    func loadCategories(){
+        categories = realm.objects(Category.self)
     }
-    */
+    
+    
+    
+    
+    //MARK: Add new categories
+    
 
-    /*
-    // Override to support conditional rearranging of the table view.
-    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the item to be re-orderable.
-        return true
+    
+    
+    
+    
+    @IBAction func addButtonPressed(_ sender: UIButton) {
+        
+        var textField = UITextField()
+        
+        let alert = UIAlertController(title: "Add New Category", message: "", preferredStyle: .alert)
+        
+        let action = UIAlertAction(title: "Add Category", style: .default){
+            (action) in
+            
+            let newCategory = Category()
+            
+            newCategory.name = textField.text!
+            newCategory.color = UIColor.randomFlat().hexValue() // it saves a new color to the realm
+            
+         
+            self.save(category: newCategory)
+            self.tableView.reloadData()
+        }
+        
+        alert.addAction(action)
+        
+        alert.addTextField {
+            alertTextField in
+            textField = alertTextField
+            alertTextField.placeholder = "Create a new category"
+        }
+        
+        present(alert, animated: true, completion: nil)
     }
-    */
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
+    
+    //MARK: Tableview Delegate Methods
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        performSegue(withIdentifier: "goToItem", sender: self)
+    }
+    
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+        let destinationVC = segue.destination as! TodoListViewController
+        if let indexPath = tableView.indexPathForSelectedRow {
+            destinationVC.selectedCategory = categories?[indexPath.row] 
+        }
     }
-    */
-
+    
 }
+
+    
+
